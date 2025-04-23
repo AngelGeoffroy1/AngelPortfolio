@@ -5,6 +5,7 @@ const navLinks = document.querySelector('.nav-links');
 const burger = document.querySelector('.burger');
 const scrollTopBtn = document.querySelector('.scroll-top');
 const skillProgress = document.querySelectorAll('.skill-progress');
+const skillCategories = document.querySelectorAll('.skill-category');
 const projectCards = document.querySelectorAll('.project-card');
 const filterBtns = document.querySelectorAll('.filter-btn');
 const modalBtns = document.querySelectorAll('.project-modal-btn');
@@ -153,7 +154,25 @@ function checkElementsInViewport() {
     }
   });
   
-  // Animate skill bars when in viewport
+  // Animate skill categories when in viewport
+  skillCategories.forEach(category => {
+    if (isInViewport(category) && !category.classList.contains('show')) {
+      category.classList.add('show');
+      
+      // Animate skill progress bars with a delay
+      setTimeout(() => {
+        const progressBars = category.querySelectorAll('.skill-progress');
+        progressBars.forEach((bar, index) => {
+          setTimeout(() => {
+            const progress = bar.getAttribute('data-progress');
+            bar.style.width = `${progress}%`;
+          }, index * 120);
+        });
+      }, 400);
+    }
+  });
+  
+  // Original skill progress animation (for backward compatibility)
   skillProgress.forEach(skill => {
     if (isInViewport(skill) && !skill.style.width) {
       const progress = skill.getAttribute('data-progress');
@@ -198,32 +217,125 @@ function animateTimelineItems() {
 function initSkillAnimation() {
   setTimeout(() => {
     checkElementsInViewport();
+    
+    // Add 3D tilt effect to skill items
+    const skillItems = document.querySelectorAll('.skill-item');
+    
+    skillItems.forEach(item => {
+      item.addEventListener('mousemove', e => {
+        const rect = item.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const width = rect.width;
+        const height = rect.height;
+        
+        // Calculate rotation based on mouse position - réduire l'angle pour un effet plus subtil
+        const rotateX = ((y - height / 2) / height) * 5; 
+        const rotateY = ((width / 2 - x) / width) * 5;
+        
+        // Apply the transform
+        item.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+        
+        // Add shine effect based on mouse position
+        const shine = item.querySelector('.skill-progress');
+        if (shine) {
+          const percentage = (x / width) * 100;
+          shine.style.backgroundImage = `linear-gradient(90deg, var(--primary-dark) 0%, var(--primary-color) ${percentage}%, var(--primary-light) 100%)`;
+        }
+      });
+      
+      // Reset on mouse leave
+      item.addEventListener('mouseleave', () => {
+        item.style.transform = '';
+        const shine = item.querySelector('.skill-progress');
+        if (shine) {
+          shine.style.backgroundImage = '';
+        }
+      });
+    });
   }, 500);
 }
 
 // Project filtering
 filterBtns.forEach(btn => {
   btn.addEventListener('click', () => {
-    // Update active button
-    filterBtns.forEach(b => b.classList.remove('active'));
+    // Éviter de relancer l'animation si le même filtre est sélectionné
+    if (btn.classList.contains('active')) return;
+    
+    // Update active button avec une transition plus fluide
+    filterBtns.forEach(b => {
+      b.classList.remove('active');
+      b.style.transform = '';
+    });
     btn.classList.add('active');
+    btn.style.transform = 'scale(1.05)';
+    setTimeout(() => {
+      btn.style.transform = '';
+    }, 300);
     
     const filter = btn.getAttribute('data-filter');
+    const projectsGrid = document.querySelector('.projects-grid');
     
-    // Filter projects
-    projectCards.forEach(card => {
-      if (filter === 'all' || card.getAttribute('data-category') === filter) {
-        card.style.display = 'block';
-        setTimeout(() => {
-          card.classList.add('show');
-        }, 100);
-      } else {
-        card.classList.remove('show');
-        setTimeout(() => {
-          card.style.display = 'none';
-        }, 300);
-      }
+    // Animation de transition pour toute la grille
+    projectsGrid.style.opacity = '0.9';
+    
+    // PHASE 1: Faire disparaître tous les projets d'abord
+    projectCards.forEach((card, index) => {
+      // Animation de disparition avec un délai progressif
+      const disappearDelay = index * 40; // Délai plus court pour la disparition
+      
+      // Animation fluide de disparition
+      card.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+      setTimeout(() => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px) scale(0.95)';
+      }, disappearDelay);
     });
+    
+    // PHASE 2: Afficher uniquement les projets du filtre sélectionné après la première phase
+    setTimeout(() => {
+      // Compter les projets visibles pour ajuster la mise en page si nécessaire
+      let visibleCount = 0;
+      
+      projectCards.forEach((card, index) => {
+        const matchesFilter = filter === 'all' || card.getAttribute('data-category') === filter;
+        
+        // Décalage progressif basé sur l'index pour l'apparition
+        const appearDelay = index * 60; // Délai plus long pour l'apparition
+        
+        if (matchesFilter) {
+          // Réinitialiser pour l'apparition
+          card.style.display = 'block';
+          visibleCount++;
+          
+          // Animation d'apparition avec un délai
+          setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0) scale(1)';
+            card.classList.add('show');
+          }, appearDelay);
+        } else {
+          // Cacher définitivement les cartes qui ne correspondent pas au filtre
+          setTimeout(() => {
+            card.style.display = 'none';
+            card.classList.remove('show');
+          }, 100); // Petite pause avant de masquer
+        }
+      });
+      
+      // Réorganiser la grille si nécessaire pour éviter les espaces vides
+      if (visibleCount > 0 && visibleCount < 3) {
+        projectsGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+      } else {
+        projectsGrid.style.gridTemplateColumns = '';
+      }
+      
+      // Restaurer l'opacité de la grille
+      setTimeout(() => {
+        projectsGrid.style.opacity = '1';
+      }, 100);
+      
+    }, 500); // Attendre que tous les projets disparaissent avant de passer à la phase 2
   });
 });
 
