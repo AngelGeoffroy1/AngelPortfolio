@@ -266,26 +266,53 @@ if (contactForm) {
     const emailInput = document.getElementById('email');
     const subjectInput = document.getElementById('subject');
     const messageInput = document.getElementById('message');
+    const successMessage = document.getElementById('formSuccessMessage');
     
     if (!nameInput.value || !emailInput.value || !subjectInput.value || !messageInput.value) {
       alert('Veuillez remplir tous les champs du formulaire.');
       return;
     }
     
-    // Form data
-    const formData = {
-      name: nameInput.value,
-      email: emailInput.value,
-      subject: subjectInput.value,
-      message: messageInput.value
-    };
+    // Construire les données de formulaire
+    const formData = new FormData(contactForm);
     
-    // Here you would typically send the data to your backend
-    console.log('Form submission:', formData);
+    // Désactiver le bouton de soumission
+    const submitButton = contactForm.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi...';
     
-    // Show success message
-    alert('Merci pour votre message ! Je vous répondrai dès que possible.');
-    contactForm.reset();
+    // Envoyer à Netlify
+    fetch("/", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(formData).toString()
+    })
+    .then(response => {
+      if (response.ok) {
+        // Succès - afficher le message
+        successMessage.style.display = 'block';
+        contactForm.reset();
+        
+        // Faire défiler vers le message de succès
+        successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Cacher le message après 5 secondes
+        setTimeout(() => {
+          successMessage.style.display = 'none';
+        }, 5000);
+      } else {
+        throw new Error('Erreur lors de l\'envoi du formulaire');
+      }
+    })
+    .catch(error => {
+      console.error(error);
+      alert('Une erreur est survenue lors de l\'envoi de votre message. Veuillez réessayer ultérieurement.');
+    })
+    .finally(() => {
+      // Réactiver le bouton de soumission
+      submitButton.disabled = false;
+      submitButton.innerHTML = 'Envoyer';
+    });
   });
 }
 

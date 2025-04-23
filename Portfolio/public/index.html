@@ -396,8 +396,12 @@
                     </div>
                 </div>
                 <div class="contact-form">
-                    <form id="contactForm" name="contact" data-netlify="true" netlify method="POST">
+                    <form id="contactForm" name="contact" data-netlify="true" netlify method="POST" action="/success">
                         <input type="hidden" name="form-name" value="contact" />
+                        <div class="success-message" id="formSuccessMessage" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <p>Merci pour votre message ! Il a été envoyé avec succès.</p>
+                        </div>
                         <div class="input-group">
                             <input type="text" id="name" name="name" placeholder=" " required>
                             <label for="name">Nom</label>
