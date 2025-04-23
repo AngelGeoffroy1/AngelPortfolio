@@ -13,6 +13,9 @@ const closeModals = document.querySelectorAll('.close-modal');
 const timelineItems = document.querySelectorAll('.timeline-item');
 const contactForm = document.getElementById('contactForm');
 const typingText = document.querySelector('.typing-text');
+const techNetwork = document.querySelector('.tech-network');
+const networkNodes = document.querySelectorAll('.tech-network .node');
+const connections = document.querySelectorAll('.tech-network .connection');
 
 // Loader
 window.addEventListener('load', () => {
@@ -27,6 +30,7 @@ window.addEventListener('load', () => {
     initSkillAnimation();
     animateTimelineItems();
     addHover3DEffect();
+    initTechNetwork();
   }, 1500);
 });
 
@@ -368,5 +372,223 @@ function addHover3DEffect() {
     item.addEventListener('mouseleave', () => {
       content.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0)';
     });
+  });
+}
+
+// Tech Network Animation
+function initTechNetwork() {
+  if (!techNetwork) return;
+  
+  // Setup connections dynamically
+  setupConnections();
+  
+  // Add interactive behavior
+  networkNodes.forEach(node => {
+    // Highlight connections and connected nodes on hover
+    node.addEventListener('mouseenter', () => highlightConnections(node));
+    node.addEventListener('mouseleave', () => resetConnections());
+    
+    // Add 3D tilt effect on mousemove
+    node.addEventListener('mousemove', handleNodeMouseMove);
+  });
+  
+  // Add 3D perspective effect to entire network
+  techNetwork.addEventListener('mousemove', (e) => {
+    const { left, top, width, height } = techNetwork.getBoundingClientRect();
+    const x = (e.clientX - left) / width - 0.5;
+    const y = (e.clientY - top) / height - 0.5;
+    
+    // Ajuster la transformation pour que le mouvement soit cohérent avec la position du curseur
+    techNetwork.style.transform = `
+      perspective(1000px)
+      rotateY(${-x * 15}deg)
+      rotateX(${y * 15}deg)
+      translateZ(10px)
+    `;
+    
+    // Déplacer légèrement le nœud central en fonction de la position du curseur
+    const centerNode = document.querySelector('.node.center');
+    if (centerNode) {
+      centerNode.style.transform = `
+        translate(${x * 15}px, ${y * 15}px)
+        scale(1.05)
+      `;
+    }
+  });
+  
+  techNetwork.addEventListener('mouseleave', () => {
+    techNetwork.style.transform = 'perspective(1000px) rotateY(0) rotateX(0) translateZ(0)';
+    
+    // Réinitialiser la position du nœud central
+    const centerNode = document.querySelector('.node.center');
+    if (centerNode) {
+      centerNode.style.transform = '';
+    }
+  });
+  
+  // Animate connections with random periods
+  animateConnections();
+}
+
+function setupConnections() {
+  // Position each connection between its nodes
+  const nodePositions = {
+    n1: document.querySelector('.n1'),
+    n2: document.querySelector('.n2'),
+    n3: document.querySelector('.n3'),
+    n4: document.querySelector('.n4'),
+    n5: document.querySelector('.n5'),
+    center: document.querySelector('.node.center')
+  };
+  
+  // Connection: node1 - node2
+  positionConnection(document.querySelector('.c1-2'), nodePositions.n1, nodePositions.n2);
+  
+  // Connection: node1 - center
+  positionConnection(document.querySelector('.c1-6'), nodePositions.n1, nodePositions.center);
+  
+  // Connection: node2 - node3
+  positionConnection(document.querySelector('.c2-3'), nodePositions.n2, nodePositions.n3);
+  
+  // Connection: node2 - center
+  positionConnection(document.querySelector('.c2-6'), nodePositions.n2, nodePositions.center);
+  
+  // Connection: node3 - node4
+  positionConnection(document.querySelector('.c3-4'), nodePositions.n3, nodePositions.n4);
+  
+  // Connection: node3 - center
+  positionConnection(document.querySelector('.c3-6'), nodePositions.n3, nodePositions.center);
+  
+  // Connection: node4 - node5
+  positionConnection(document.querySelector('.c4-5'), nodePositions.n4, nodePositions.n5);
+  
+  // Connection: node4 - center
+  positionConnection(document.querySelector('.c4-6'), nodePositions.n4, nodePositions.center);
+  
+  // Connection: node5 - center
+  positionConnection(document.querySelector('.c5-6'), nodePositions.n5, nodePositions.center);
+  
+  // Connection: node5 - node1
+  positionConnection(document.querySelector('.c5-1'), nodePositions.n5, nodePositions.n1);
+}
+
+function positionConnection(connectionElement, fromNode, toNode) {
+  if (!connectionElement || !fromNode || !toNode) return;
+  
+  const fromRect = fromNode.getBoundingClientRect();
+  const toRect = toNode.getBoundingClientRect();
+  const networkRect = techNetwork.getBoundingClientRect();
+  
+  // Calculate positions relative to the tech-network container
+  const fromX = (fromRect.left + fromRect.width/2) - networkRect.left;
+  const fromY = (fromRect.top + fromRect.height/2) - networkRect.top;
+  const toX = (toRect.left + toRect.width/2) - networkRect.left;
+  const toY = (toRect.top + toRect.height/2) - networkRect.top;
+  
+  // Calculate length and angle
+  const length = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+  const angle = Math.atan2(toY - fromY, toX - fromX) * 180 / Math.PI;
+  
+  // Set the connection style
+  connectionElement.style.width = `${length}px`;
+  connectionElement.style.left = `${fromX}px`;
+  connectionElement.style.top = `${fromY}px`;
+  connectionElement.style.transform = `rotate(${angle}deg)`;
+  
+  // Store the nodes this connection links for future reference
+  connectionElement.dataset.from = fromNode.className.split(' ')[1];
+  connectionElement.dataset.to = toNode.className.split(' ')[1];
+}
+
+function highlightConnections(node) {
+  // Get the class name of the node (e.g., "n1", "center", etc.)
+  const nodeClass = node.className.split(' ')[1];
+  
+  // Reset all nodes and connections
+  networkNodes.forEach(n => n.style.opacity = '0.6');
+  connections.forEach(c => c.style.opacity = '0.3');
+  
+  // Highlight the selected node
+  node.style.opacity = '1';
+  node.style.transform = 'scale(1.2)';
+  
+  // Highlight connections and connected nodes
+  connections.forEach(connection => {
+    if (connection.dataset.from === nodeClass || connection.dataset.to === nodeClass) {
+      connection.style.opacity = '1';
+      
+      // Find and highlight the connected node
+      const connectedNodeClass = connection.dataset.from === nodeClass 
+        ? connection.dataset.to 
+        : connection.dataset.from;
+      
+      const connectedNode = document.querySelector(`.${connectedNodeClass}`);
+      if (connectedNode) {
+        connectedNode.style.opacity = '1';
+        connectedNode.style.transform = 'scale(1.1)';
+      }
+    }
+  });
+}
+
+function resetConnections() {
+  networkNodes.forEach(node => {
+    node.style.opacity = '1';
+    node.style.transform = '';
+  });
+  
+  connections.forEach(connection => {
+    connection.style.opacity = '0.6';
+  });
+}
+
+function handleNodeMouseMove(e) {
+  const node = e.currentTarget;
+  const { left, top, width, height } = node.getBoundingClientRect();
+  const x = (e.clientX - left) / width - 0.5;
+  const y = (e.clientY - top) / height - 0.5;
+  
+  node.style.transform = `
+    scale(1.1)
+    rotateY(${x * 20}deg)
+    rotateX(${-y * 20}deg)
+    translateZ(10px)
+  `;
+}
+
+function animateConnections() {
+  connections.forEach((connection, index) => {
+    // Particle effect along connections
+    setInterval(() => {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.position = 'absolute';
+      particle.style.width = '4px';
+      particle.style.height = '4px';
+      particle.style.background = 'white';
+      particle.style.borderRadius = '50%';
+      particle.style.filter = 'blur(1px)';
+      particle.style.opacity = '0.8';
+      particle.style.left = '0';
+      particle.style.top = '0';
+      particle.style.zIndex = '1';
+      particle.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.8)';
+      
+      connection.appendChild(particle);
+      
+      // Animate particle along connection
+      const duration = Math.random() * 1000 + 1000; // 1s to 2s
+      
+      particle.animate([
+        { left: '0%', opacity: 0 },
+        { left: '50%', opacity: 1 },
+        { left: '100%', opacity: 0 }
+      ], {
+        duration: duration,
+        easing: 'ease-in-out'
+      }).onfinish = () => {
+        particle.remove();
+      };
+    }, 2000 + index * 200); // Stagger the intervals
   });
 } 
