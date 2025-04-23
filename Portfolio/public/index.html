@@ -396,21 +396,22 @@
                     </div>
                 </div>
                 <div class="contact-form">
-                    <form id="contactForm">
+                    <form id="contactForm" name="contact" data-netlify="true" netlify method="POST">
+                        <input type="hidden" name="form-name" value="contact" />
                         <div class="input-group">
-                            <input type="text" id="name" placeholder=" " required>
+                            <input type="text" id="name" name="name" placeholder=" " required>
                             <label for="name">Nom</label>
                         </div>
                         <div class="input-group">
-                            <input type="email" id="email" placeholder=" " required>
+                            <input type="email" id="email" name="email" placeholder=" " required>
                             <label for="email">Email</label>
                         </div>
                         <div class="input-group">
-                            <input type="text" id="subject" placeholder=" " required>
+                            <input type="text" id="subject" name="subject" placeholder=" " required>
                             <label for="subject">Sujet</label>
                         </div>
                         <div class="input-group">
-                            <textarea id="message" placeholder=" " required></textarea>
+                            <textarea id="message" name="message" placeholder=" " required></textarea>
                             <label for="message">Message</label>
                         </div>
                         <button type="submit" class="btn btn-primary">Envoyer</button>
